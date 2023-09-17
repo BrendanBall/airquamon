@@ -3,17 +3,6 @@
 version = 3
 
 [[package]]
-name = "airquamon"
-version = "0.1.0"
-dependencies = [
- "esp-backtrace",
- "esp-println",
- "esp32c3-hal",
- "log",
- "scd4x",
-]
-
-[[package]]
 name = "basic-toml"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -205,6 +194,17 @@ checksum = "98501cfeea3081911074cde8074533b2939e46bd3630b1cd3e89563d58148a00"
 dependencies = [
  "cfg-if",
  "esp-hal-common",
+]
+
+[[package]]
+name = "esp32c3_nostd"
+version = "0.1.0"
+dependencies = [
+ "esp-backtrace",
+ "esp-println",
+ "esp32c3-hal",
+ "log",
+ "scd4x",
 ]
 
 [[package]]
