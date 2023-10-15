@@ -13,6 +13,28 @@ Currently using the following for Sensirion SCD41:
 - GND (black) -> GND
 - VDD (red) -> 3.3 V
 
+### 2.9inch E-Paper E-Ink Display Module (B), 296×128, Red / Black / White, SPI
+https://www.waveshare.com/product/displays/e-paper/epaper-2/2.9inch-e-paper-module-b.htm
+
+- VCC:	3.3V/5V
+- GND:	Ground
+- DIN:	SPI MOSI pin
+- CLK:	SPI SCK pin
+- CS:	SPI chip selection, low active
+- DC:	Data / Command selection (high for data, low for command)
+- RST:	External reset, low active
+- BUSY:	Busy status output, low active
+
+SPI2 can be used on any GPIO pins
+- VCC -> 3.3 V
+- GND -> GND
+- DIN (MOSI) -> GPIO4
+- CLK (SCK) -> GPIO5
+- CS -> GPIO6
+- DC (MISO) -> GPIO7
+- RST -> GPIO18
+- BUSY -> GPIO19
+
 ## Resources
 - https://github.com/Sensirion/arduino-ble-gadget/blob/master/documents/SCD4x_BLE_Gadget_Tutorial.md
 - https://www.espressif.com/sites/default/files/documentation/esp32-c3_datasheet_en.pdf
