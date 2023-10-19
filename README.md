@@ -40,6 +40,7 @@ SPI2 can be used on any GPIO pins
 - https://www.espressif.com/sites/default/files/documentation/esp32-c3_datasheet_en.pdf
 - https://docs.rust-embedded.org/discovery/microbit/08-i2c/index.html
 - https://docs.rs/esp32c3-hal/latest/esp32c3_hal/i2c/index.html
+- https://www.allaboutcircuits.com/technical-articles/spi-serial-peripheral-interface
 
 ## Acknowledgements
 - hauju for releasing https://github.com/hauju/scd4x-rs
