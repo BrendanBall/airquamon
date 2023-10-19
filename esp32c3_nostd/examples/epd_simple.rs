@@ -105,7 +105,7 @@ fn main() -> ! {
 
         let mut mono_display = Display2in9bc::default();
 
-        mono_display.set_rotation(DisplayRotation::Rotate90);
+        mono_display.set_rotation(DisplayRotation::Rotate270);
         draw_text(&mut mono_display, counter_text.as_str(), 5, 10);
     
         info!("waking up display");
@@ -134,7 +134,7 @@ fn main() -> ! {
 
 fn draw_text(display: &mut Display2in9bc, text: &str, x: i32, y: i32) {
     let style = MonoTextStyleBuilder::new()
-        .font(&embedded_graphics::mono_font::ascii::FONT_6X10)
+        .font(&embedded_graphics::mono_font::ascii::FONT_9X15_BOLD)
         .text_color(Black)
         .background_color(White)
         .build();
