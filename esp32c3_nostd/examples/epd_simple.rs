@@ -2,37 +2,34 @@
 #![no_main]
 
 use esp_backtrace as _;
-use esp_println::println;
-use hal::{
+
+use esp32c3_hal::{
     clock::ClockControl, 
     peripherals::Peripherals, 
-    spi::{Spi, SpiMode, FullDuplexMode},
+    spi::{
+        master::{Spi, SpiBusController},
+        SpiMode,
+    },
     gpio::IO,
     prelude::*, 
     Delay,
 };
-use embedded_hal::blocking::spi::Write;
-use embedded_hal::digital::v2::{OutputPin, InputPin};
 use embedded_graphics::{
     mono_font::MonoTextStyleBuilder,
     prelude::*,
-    primitives::{Circle, Line, PrimitiveStyle},
     text::{Baseline, Text, TextStyleBuilder},
 };
-use epd_waveshare::{epd2in9bc::*, prelude::*, color::*};
+use epd_waveshare::{epd2in9bc::*, prelude::*, color::Color};
 use heapless::String;
 use core::fmt::{self, Write as FmtWrite};
 use log::{info, error};
 
-enum Error<T: Write<u8>> {
-    EpdError(<T as Write<u8>>::Error)
-} 
 
 #[entry]
 fn main() -> ! {
     let peripherals = Peripherals::take();
-    let mut system = peripherals.SYSTEM.split();
-    let mut clocks = ClockControl::boot_defaults(system.clock_control).freeze();
+    let system = peripherals.SYSTEM.split();
+    let clocks = ClockControl::boot_defaults(system.clock_control).freeze();
     let mut delay = Delay::new(&clocks);
 
     // setup logger
@@ -50,33 +47,28 @@ fn main() -> ! {
     let rst = io.pins.gpio18.into_push_pull_output();
     let busy = io.pins.gpio19.into_pull_down_input();
 
-    let mut spi = Spi::new_no_cs_no_miso(
+    let spi_controller = SpiBusController::from_spi(Spi::new_no_cs_no_miso(
         peripherals.SPI2,
         sck,
         mosi,
         100u32.kHz(),
         SpiMode::Mode0,
-        &mut system.peripheral_clock_control,
-        &mut clocks,
-    );
+        &clocks,
+    ));
+    let mut spi = spi_controller.add_device(cs);
 
     info!("Connecting to display");
 
     // Setup EPD
     let mut epd = Epd2in9bc::new(
         &mut spi, 
-        cs, 
         busy, 
         dc, 
         rst, 
-        &mut delay
+        &mut delay,
+        None
     ).expect("failing setting up epd");
 
-    info!("epd is busy: {}", epd.is_busy());
-    for i in 0..10 {
-        info!("epd is busy: {}", epd.is_busy());
-        delay.delay_ms(1000u16);
-    }
 
     let mut mono_display = Display2in9bc::default();
 
@@ -84,6 +76,8 @@ fn main() -> ! {
     draw_text(&mut mono_display, "Hello", 5, 10);
 
     // epd.wake_up(&mut spi, &mut delay).expect("Failed waking up epd");
+
+    epd.wait_until_idle(&mut spi, &mut delay).expect("Failed waiting until idle");
 
     epd.update_frame(&mut spi, mono_display.buffer(), &mut delay).expect("Failed updating frame");
     epd
@@ -111,14 +105,8 @@ fn main() -> ! {
         info!("waking up display");
         epd.wake_up(&mut spi, &mut delay).expect("Failed waking up epd");
         
-        info!("epd is busy: {}", epd.is_busy());
-        loop {
-            if !epd.is_busy() {
-                break;
-            }
-            info!("epd is still busy");
-            delay.delay_ms(1000u16);
-        }
+        epd.wait_until_idle(&mut spi, &mut delay).expect("Failed waiting until idle");
+
 
         info!("updating display frame");
         epd.update_frame(&mut spi, mono_display.buffer(), &mut delay).expect("Failed updating frame");
@@ -135,8 +123,8 @@ fn main() -> ! {
 fn draw_text(display: &mut Display2in9bc, text: &str, x: i32, y: i32) {
     let style = MonoTextStyleBuilder::new()
         .font(&embedded_graphics::mono_font::ascii::FONT_6X10)
-        .text_color(Black)
-        .background_color(White)
+        .text_color(Color::Black)
+        .background_color(Color::White)
         .build();
 
     let text_style = TextStyleBuilder::new().baseline(Baseline::Top).build();
