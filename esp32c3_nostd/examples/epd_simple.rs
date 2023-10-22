@@ -19,7 +19,7 @@ use embedded_graphics::{
     prelude::*,
     text::{Baseline, Text, TextStyleBuilder},
 };
-use epd_waveshare::{epd2in9bc::*, prelude::*, color::Color};
+use epd_waveshare::{epd2in9b_v3::*, prelude::*, color::Color};
 use heapless::String;
 use core::fmt::{self, Write as FmtWrite};
 use log::{info, error};
@@ -60,7 +60,7 @@ fn main() -> ! {
     info!("Connecting to display");
 
     // Setup EPD
-    let mut epd = Epd2in9bc::new(
+    let mut epd = Epd2in9b::new(
         &mut spi, 
         busy, 
         dc, 
@@ -70,9 +70,9 @@ fn main() -> ! {
     ).expect("failing setting up epd");
 
 
-    let mut mono_display = Display2in9bc::default();
+    let mut mono_display = Display2in9b::default();
 
-    mono_display.set_rotation(DisplayRotation::Rotate90);
+    mono_display.set_rotation(DisplayRotation::Rotate270);
     draw_text(&mut mono_display, "Hello", 5, 10);
 
     // epd.wake_up(&mut spi, &mut delay).expect("Failed waking up epd");
@@ -95,11 +95,11 @@ fn main() -> ! {
         // fmt::write(&mut counter_text, format_args!("Counter: {}", counter)).expect("Error occurred while trying to write in String");
         write!(counter_text, "Counter: {counter}").expect("Error occurred while trying to write in String");
         info!("Sleeping");
-        delay.delay_ms(15000u16);
+        delay.delay_ms(30000u16);
 
-        let mut mono_display = Display2in9bc::default();
+        let mut mono_display = Display2in9b::default();
 
-        mono_display.set_rotation(DisplayRotation::Rotate90);
+        mono_display.set_rotation(DisplayRotation::Rotate270);
         draw_text(&mut mono_display, counter_text.as_str(), 5, 10);
     
         info!("waking up display");
@@ -120,9 +120,9 @@ fn main() -> ! {
 }
 
 
-fn draw_text(display: &mut Display2in9bc, text: &str, x: i32, y: i32) {
+fn draw_text(display: &mut Display2in9b, text: &str, x: i32, y: i32) {
     let style = MonoTextStyleBuilder::new()
-        .font(&embedded_graphics::mono_font::ascii::FONT_6X10)
+        .font(&embedded_graphics::mono_font::ascii::FONT_8X13_BOLD)
         .text_color(Color::Black)
         .background_color(Color::White)
         .build();
