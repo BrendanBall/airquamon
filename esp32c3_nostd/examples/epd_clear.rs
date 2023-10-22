@@ -2,22 +2,27 @@
 #![no_main]
 
 use esp_backtrace as _;
-use hal::{
+
+use esp32c3_hal::{
     clock::ClockControl, 
     peripherals::Peripherals, 
-    spi::{Spi, SpiMode},
+    spi::{
+        master::{Spi, SpiBusController},
+        SpiMode,
+    },
     gpio::IO,
     prelude::*, 
     Delay,
 };
-use epd_waveshare::{epd2in9bc::*, prelude::*};
+use epd_waveshare::{epd2in9b_v3::*, prelude::*};
 use log::info;
+
 
 #[entry]
 fn main() -> ! {
     let peripherals = Peripherals::take();
-    let mut system = peripherals.SYSTEM.split();
-    let mut clocks = ClockControl::boot_defaults(system.clock_control).freeze();
+    let system = peripherals.SYSTEM.split();
+    let clocks = ClockControl::boot_defaults(system.clock_control).freeze();
     let mut delay = Delay::new(&clocks);
 
     // setup logger
@@ -35,45 +40,40 @@ fn main() -> ! {
     let rst = io.pins.gpio18.into_push_pull_output();
     let busy = io.pins.gpio19.into_pull_down_input();
 
-    let mut spi = Spi::new_no_cs_no_miso(
+    let spi_controller = SpiBusController::from_spi(Spi::new_no_cs_no_miso(
         peripherals.SPI2,
         sck,
         mosi,
         100u32.kHz(),
         SpiMode::Mode0,
-        &mut system.peripheral_clock_control,
-        &mut clocks,
-    );
+        &clocks,
+    ));
+    let mut spi = spi_controller.add_device(cs);
 
     info!("Connecting to display");
 
     // Setup EPD
-    let mut epd = Epd2in9bc::new(
+    let mut epd = Epd2in9b::new(
         &mut spi, 
-        cs, 
         busy, 
         dc, 
         rst, 
-        &mut delay
+        &mut delay,
+        None
     ).expect("failing setting up epd");
 
-    info!("epd is busy: {}", epd.is_busy());
 
-    delay.delay_ms(100u16);
+    epd.wait_until_idle(&mut spi, &mut delay).expect("Failed waiting until idle");
 
-    epd.clear_frame(&mut spi, &mut delay).expect("Failed updating frame");
+    epd.clear_frame(&mut spi, &mut delay).expect("Failed clearing frame");
     epd
-    .display_frame(&mut spi, &mut delay).expect("Failed displaying frame");
-
-    delay.delay_ms(100u16);
+        .display_frame(&mut spi, &mut delay).expect("Failed displaying frame");
 
     // Set the EPD to sleep
     epd.sleep(&mut spi, &mut delay).expect("Failed sleeping epd");
 
     loop {
-        delay.delay_ms(15000u16);
-
-        info!("Waiting");
-  
+        info!("Sleeping");
+        delay.delay_ms(30000u16);
     }
 }
