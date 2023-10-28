@@ -41,7 +41,9 @@ SPI2 can be used on any GPIO pins
 - https://docs.rust-embedded.org/discovery/microbit/08-i2c/index.html
 - https://docs.rs/esp32c3-hal/latest/esp32c3_hal/i2c/index.html
 - https://www.allaboutcircuits.com/technical-articles/spi-serial-peripheral-interface
+- https://github.com/waveshareteam/Pico_ePaper_Code
 
 ## Acknowledgements
 - hauju for releasing https://github.com/hauju/scd4x-rs
+- caemor for https://github.com/caemor/epd-waveshare
 - Everyone else involved in open source embedded Rust
