@@ -179,7 +179,7 @@ impl<
 struct Display<SPI, EPD, DRAWTARGET, DELAY>
     where 
     SPI: SpiDevice,
-    EPD: WaveshareDisplayNoGenerics<SPI, DELAY>,
+    EPD: WaveshareDisplayV2<SPI, DELAY>,
     DRAWTARGET: DrawTarget<Color = Color> + Buffer,
     DELAY: DelayUs
 
@@ -202,7 +202,7 @@ trait DisplayTheme {
 impl<SPI, EPD, DRAWTARGET, DELAY> DisplayTheme for Display<SPI, EPD, DRAWTARGET, DELAY> 
     where 
     SPI: SpiDevice,
-    EPD: WaveshareDisplayNoGenerics<SPI, DELAY>,
+    EPD: WaveshareDisplayV2<SPI, DELAY>,
     SPI: SpiDevice,
     DRAWTARGET: DrawTarget<Color = Color> + Buffer,
     DELAY: DelayUs
@@ -225,7 +225,7 @@ impl<SPI, EPD, DRAWTARGET, DELAY> DisplayTheme for Display<SPI, EPD, DRAWTARGET,
 fn draw_to_epd<'a, SPI, EPD, D, DELAY>(spi: &mut SPI, epd: &mut EPD, draw_target: &mut D, delay: &mut DELAY, text: &str) -> Result<(), SPI::Error>
 where 
     SPI: SpiDevice,
-    EPD: WaveshareDisplayNoGenerics<SPI, DELAY>,
+    EPD: WaveshareDisplayV2<SPI, DELAY>,
     D: DrawTarget<Color = Color> + Buffer,
     DELAY: DelayUs {
     draw_text(draw_target, text, 5, 10);
