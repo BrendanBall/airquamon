@@ -14,15 +14,17 @@ use esp32c3_hal::{
     prelude::*, 
     Delay,
 };
+use embedded_hal::spi::SpiDevice;
+use embedded_hal::delay::DelayUs;
 use scd4x::scd4x::Scd4x;
 use embedded_graphics::{
     mono_font::MonoTextStyleBuilder,
     prelude::*,
     text::{Baseline, Text, TextStyleBuilder},
 };
-use epd_waveshare::{epd2in9b_v3::*, prelude::*, color::Color};
+use epd_waveshare::{epd2in9b_v3::*, prelude::*, color::{Color, ColorType}, graphics};
 use heapless::String;
-use core::fmt::{self, Write as FmtWrite};
+use core::fmt::{Write as FmtWrite};
 use log::{info, error};
 
 #[entry]
@@ -73,7 +75,7 @@ fn main() -> ! {
 
     info!("Connecting to display");
 
-    let mut epd = Epd2in9b::new(
+    let epd = Epd2in9b::new(
         &mut spi, 
         busy, 
         dc, 
@@ -81,22 +83,19 @@ fn main() -> ! {
         &mut delay,
         None
     ).expect("failing setting up epd");
-
+   
     let mut mono_display = Display2in9b::default();
-
     mono_display.set_rotation(DisplayRotation::Rotate270);
-    draw_text(&mut mono_display, "Hello", 5, 10);
+   
+    let mut display = Display {
+        spi: spi,
+        draw_target: mono_display,
+        epd: epd,
+        delay: delay,
+        display_text: String::new(),
+    };
 
-    // epd.wake_up(&mut spi, &mut delay).expect("Failed waking up epd");
-
-    epd.wait_until_idle(&mut spi, &mut delay).expect("Failed waiting until idle");
-
-    epd.update_frame(&mut spi, mono_display.buffer(), &mut delay).expect("Failed updating frame");
-    epd
-        .display_frame(&mut spi, &mut delay).expect("Failed displaying frame");
-
-    epd.sleep(&mut spi, &mut delay).expect("Failed sleeping epd");
-
+    display.draw_text("Hello").expect("failed drawing");
 
     sensor.wake_up();
     // sensor.set_automatic_self_calibration(true).expect("failed enabling sensor automatic self calibration");
@@ -106,26 +105,17 @@ fn main() -> ! {
     let serial = sensor.serial_number().unwrap();
     info!("Serial: {:#04x}", serial);
 
-    // info!("Starting periodic measurement");
-    // sensor.start_periodic_measurement().unwrap();
-
-    // info!("Waiting for first measurement... (5 sec)");
-    // delay.delay_ms(5000u16);
-
-    let mut display_text: String<20> = String::new();
-
-
     loop {
         // sensor.wake_up();
         info!("Starting periodic measurement");
         sensor.start_periodic_measurement().unwrap();
-        delay.delay_ms(5000u16);
+        DelayUs::delay_ms(&mut delay, 5000);
 
         info!("Waiting for data ready");
         loop {
             match sensor.data_ready_status() {
                 Ok(true) => break,
-                Ok(false) => delay.delay_ms(100u16),
+                Ok(false) => DelayUs::delay_ms(&mut delay, 100),
                 Err(e) => {
                     panic!("Failed to poll for data ready: {:?}", e);
                 },
@@ -151,32 +141,114 @@ fn main() -> ! {
 
 
         info!("updating display");
-        display_text.clear();
-        write!(display_text, "C02: {}", data.co2).expect("Error occurred while trying to write in String");
-        let mut mono_display = Display2in9b::default();
+        display.draw(Data {
+            co2: data.co2,
+            temperature: data.temperature,
+            humidity: data.humidity,
+        }).expect("draw failed");
 
-        mono_display.set_rotation(DisplayRotation::Rotate270);
-        draw_text(&mut mono_display, &display_text.as_str(), 5, 10);
-    
-        info!("waking up display");
-        epd.wake_up(&mut spi, &mut delay).expect("Failed waking up epd");
-        
-        epd.wait_until_idle(&mut spi, &mut delay).expect("Failed waiting until idle");
-
-
-        info!("updating display frame");
-        epd.update_frame(&mut spi, mono_display.buffer(), &mut delay).expect("Failed updating frame");
-        epd
-            .display_frame(&mut spi, &mut delay).expect("Failed displaying frame");
-    
-        // Set the EPD to sleep
-        epd.sleep(&mut spi, &mut delay).expect("Failed sleeping epd");
         info!("Sleeping");
-        delay.delay_ms(30000u16);
+        DelayUs::delay_ms(&mut delay, 30000);
     }
 }
 
-fn draw_text(display: &mut Display2in9b, text: &str, x: i32, y: i32) {
+struct Data {
+    pub co2: u16,
+    pub temperature: f32,
+    pub humidity: f32,
+}
+
+trait Buffer {
+    fn buffer(&self) -> &[u8];
+}
+
+impl<
+        const WIDTH: u32,
+        const HEIGHT: u32,
+        const BWRBIT: bool,
+        const BYTECOUNT: usize,
+        COLOR: ColorType,
+    > Buffer for graphics::Display<WIDTH, HEIGHT, BWRBIT, BYTECOUNT, COLOR> {
+    
+    fn buffer(&self) -> &[u8] {
+        self.buffer()
+    }
+
+}
+
+struct Display<SPI, EPD, DRAWTARGET, DELAY>
+    where 
+    SPI: SpiDevice,
+    EPD: WaveshareDisplayNoGenerics<SPI, DELAY>,
+    DRAWTARGET: DrawTarget<Color = Color> + Buffer,
+    DELAY: DelayUs
+
+{
+    spi: SPI,
+    epd: EPD,
+    draw_target: DRAWTARGET,
+    delay: DELAY,
+    display_text: String<20>,
+}
+
+trait DisplayTheme {
+
+    type Error;
+
+    fn draw(&mut self, data: Data) -> Result<(), Self::Error>;
+    fn draw_text(&mut self, text: &str) -> Result<(), Self::Error>;
+}
+
+impl<SPI, EPD, DRAWTARGET, DELAY> DisplayTheme for Display<SPI, EPD, DRAWTARGET, DELAY> 
+    where 
+    SPI: SpiDevice,
+    EPD: WaveshareDisplayNoGenerics<SPI, DELAY>,
+    SPI: SpiDevice,
+    DRAWTARGET: DrawTarget<Color = Color> + Buffer,
+    DELAY: DelayUs
+{
+    type Error = SPI::Error;
+
+    fn draw(&mut self, data: Data) -> Result<(), Self::Error> {
+        self.display_text.clear();
+        write!(self.display_text, "C02: {}", data.co2).expect("Error occurred while trying to write in String");
+        draw_to_epd(&mut self.spi, &mut self.epd, &mut self.draw_target, &mut self.delay, &self.display_text)?;
+        Ok(())
+    }
+
+    fn draw_text(&mut self, text: &str) -> Result<(), Self::Error> {
+        draw_to_epd(&mut self.spi, &mut self.epd, &mut self.draw_target, &mut self.delay, text)?;
+        Ok(())
+    }
+}
+
+fn draw_to_epd<'a, SPI, EPD, D, DELAY>(spi: &mut SPI, epd: &mut EPD, draw_target: &mut D, delay: &mut DELAY, text: &str) -> Result<(), SPI::Error>
+where 
+    SPI: SpiDevice,
+    EPD: WaveshareDisplayNoGenerics<SPI, DELAY>,
+    D: DrawTarget<Color = Color> + Buffer,
+    DELAY: DelayUs {
+    draw_text(draw_target, text, 5, 10);
+    info!("waking up display");
+    epd.wake_up(spi, delay)?;
+    
+    epd.wait_until_idle(spi, delay)?;
+
+
+    info!("updating display frame");
+    epd.update_frame(spi, draw_target.buffer(), delay)?;
+    epd.display_frame(spi, delay)?;
+
+    // Set the EPD to sleep
+    epd.sleep(spi, delay)?;
+    Ok(())
+}
+
+
+
+fn draw_text<DRAWTARGET>(display: &mut DRAWTARGET, text: &str, x: i32, y: i32) 
+where
+    DRAWTARGET: DrawTarget<Color = Color> {
     let style = MonoTextStyleBuilder::new()
         .font(&embedded_graphics::mono_font::ascii::FONT_8X13_BOLD)
         .text_color(Color::Black)
