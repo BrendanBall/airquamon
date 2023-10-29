@@ -20,6 +20,7 @@ use scd4x::scd4x::Scd4x;
 use embedded_graphics::{
     mono_font::MonoTextStyleBuilder,
     prelude::*,
+    primitives::{Line, PrimitiveStyle},
     text::{Baseline, Text, TextStyleBuilder},
 };
 use epd_waveshare::{epd2in9b_v3::*, prelude::*, color::{TriColor, ColorType}, graphics};
@@ -84,13 +85,13 @@ fn main() -> ! {
         None
     ).expect("failing setting up epd");
    
-    let mut mono_display = Display2in9b::default();
-    mono_display.set_rotation(DisplayRotation::Rotate270);
-    mono_display.clear(TriColor::White).expect("failed clearing display");
+    let mut display = Display2in9b::default();
+    display.set_rotation(DisplayRotation::Rotate270);
+    display.clear(TriColor::White).expect("failed clearing display");
    
     let mut display = Display {
         spi: spi,
-        draw_target: mono_display,
+        draw_target: display,
         epd: epd,
         delay: delay,
         display_text: String::new(),
@@ -161,6 +162,11 @@ trait Buffer {
     fn buffer(&self) -> &[u8];
 }
 
+trait ChromaticBuffer {
+    fn bw_buffer(&self) -> &[u8];
+    fn chromatic_buffer(&self) -> &[u8];
+}
+
 impl<
         const WIDTH: u32,
         const HEIGHT: u32,
@@ -175,11 +181,27 @@ impl<
 
 }
 
+impl<
+        const WIDTH: u32,
+        const HEIGHT: u32,
+        const BWRBIT: bool,
+        const BYTECOUNT: usize,
+    > ChromaticBuffer for graphics::Display<WIDTH, HEIGHT, BWRBIT, BYTECOUNT, TriColor> {
+    
+    fn bw_buffer(&self) -> &[u8] {
+        self.bw_buffer()
+    }
+
+    fn chromatic_buffer(&self) -> &[u8] {
+        self.chromatic_buffer()
+    }
+}
+
 struct Display<SPI, EPD, DRAWTARGET, DELAY>
     where 
     SPI: SpiDevice,
-    EPD: WaveshareDisplayV2<SPI, DELAY>,
-    DRAWTARGET: DrawTarget<Color = TriColor> + Buffer,
+    EPD: WaveshareThreeColorDisplayV2<SPI, DELAY>,
+    DRAWTARGET: DrawTarget<Color = TriColor> + ChromaticBuffer,
     DELAY: DelayUs
 
 {
@@ -201,9 +223,9 @@ trait DisplayTheme {
 impl<SPI, EPD, DRAWTARGET, DELAY> DisplayTheme for Display<SPI, EPD, DRAWTARGET, DELAY> 
     where 
     SPI: SpiDevice,
-    EPD: WaveshareDisplayV2<SPI, DELAY>,
+    EPD: WaveshareThreeColorDisplayV2<SPI, DELAY>,
     SPI: SpiDevice,
-    DRAWTARGET: DrawTarget<Color = TriColor> + Buffer,
+    DRAWTARGET: DrawTarget<Color = TriColor> + ChromaticBuffer,
     DELAY: DelayUs
 {
     type Error = SPI::Error;
@@ -211,23 +233,27 @@ impl<SPI, EPD, DRAWTARGET, DELAY> DisplayTheme for Display<SPI, EPD, DRAWTARGET,
     fn draw(&mut self, data: Data) -> Result<(), Self::Error> {
         self.display_text.clear();
         write!(self.display_text, "CO2: {0} ppm | {1:#.2} °C | {2:#.2} %", data.co2, data.temperature, data.humidity).expect("Error occurred while trying to write in String");
-        draw_to_epd(&mut self.spi, &mut self.epd, &mut self.draw_target, &mut self.delay, &self.display_text)?;
+        let _ = Line::new(Point::new(5, 50), Point::new(291, 50))
+        .into_styled(PrimitiveStyle::with_stroke(TriColor::Chromatic, 4))
+        .draw(&mut self.draw_target);
+        draw_text(&mut self.draw_target, &self.display_text, 5, 10);
+        draw_to_epd(&mut self.spi, &mut self.epd, &mut self.draw_target, &mut self.delay)?;
         Ok(())
     }
 
     fn draw_text(&mut self, text: &str) -> Result<(), Self::Error> {
-        draw_to_epd(&mut self.spi, &mut self.epd, &mut self.draw_target, &mut self.delay, text)?;
+        draw_text(&mut self.draw_target, text, 5, 10);
+        draw_to_epd(&mut self.spi, &mut self.epd, &mut self.draw_target, &mut self.delay)?;
         Ok(())
     }
 }
 
-fn draw_to_epd<'a, SPI, EPD, D, DELAY>(spi: &mut SPI, epd: &mut EPD, draw_target: &mut D, delay: &mut DELAY, text: &str) -> Result<(), SPI::Error>
+fn draw_to_epd<'a, SPI, EPD, DRAWTARGET, DELAY>(spi: &mut SPI, epd: &mut EPD, draw_target: &mut DRAWTARGET, delay: &mut DELAY) -> Result<(), SPI::Error>
 where 
     SPI: SpiDevice,
-    EPD: WaveshareDisplayV2<SPI, DELAY>,
-    D: DrawTarget<Color = TriColor> + Buffer,
+    EPD: WaveshareThreeColorDisplayV2<SPI, DELAY>,
+    DRAWTARGET: DrawTarget<Color = TriColor> + ChromaticBuffer,
     DELAY: DelayUs {
-    draw_text(draw_target, text, 5, 10);
     info!("waking up display");
     epd.wake_up(spi, delay)?;
     
@@ -235,7 +261,7 @@ where
 
 
     info!("updating display frame");
-    epd.update_frame(spi, draw_target.buffer(), delay)?;
+    epd.update_color_frame(spi, delay, draw_target.bw_buffer(), draw_target.chromatic_buffer())?;
     epd.display_frame(spi, delay)?;
 
     // Set the EPD to sleep
