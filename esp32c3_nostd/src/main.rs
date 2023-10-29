@@ -22,7 +22,7 @@ use embedded_graphics::{
     prelude::*,
     text::{Baseline, Text, TextStyleBuilder},
 };
-use epd_waveshare::{epd2in9b_v3::*, prelude::*, color::{Color, ColorType}, graphics};
+use epd_waveshare::{epd2in9b_v3::*, prelude::*, color::{TriColor, ColorType}, graphics};
 use heapless::String;
 use core::fmt::{Write as FmtWrite};
 use log::{info, error};
@@ -86,6 +86,7 @@ fn main() -> ! {
    
     let mut mono_display = Display2in9b::default();
     mono_display.set_rotation(DisplayRotation::Rotate270);
+    mono_display.clear(TriColor::White).expect("failed clearing display");
    
     let mut display = Display {
         spi: spi,
@@ -94,8 +95,6 @@ fn main() -> ! {
         delay: delay,
         display_text: String::new(),
     };
-
-    display.draw_text("Hello").expect("failed drawing");
 
     sensor.wake_up();
     // sensor.set_automatic_self_calibration(true).expect("failed enabling sensor automatic self calibration");
@@ -148,7 +147,7 @@ fn main() -> ! {
         }).expect("draw failed");
 
         info!("Sleeping");
-        DelayUs::delay_ms(&mut delay, 30000);
+        DelayUs::delay_ms(&mut delay, 60000);
     }
 }
 
@@ -180,7 +179,7 @@ struct Display<SPI, EPD, DRAWTARGET, DELAY>
     where 
     SPI: SpiDevice,
     EPD: WaveshareDisplayV2<SPI, DELAY>,
-    DRAWTARGET: DrawTarget<Color = Color> + Buffer,
+    DRAWTARGET: DrawTarget<Color = TriColor> + Buffer,
     DELAY: DelayUs
 
 {
@@ -188,7 +187,7 @@ struct Display<SPI, EPD, DRAWTARGET, DELAY>
     epd: EPD,
     draw_target: DRAWTARGET,
     delay: DELAY,
-    display_text: String<20>,
+    display_text: String<60>,
 }
 
 trait DisplayTheme {
@@ -204,14 +203,14 @@ impl<SPI, EPD, DRAWTARGET, DELAY> DisplayTheme for Display<SPI, EPD, DRAWTARGET,
     SPI: SpiDevice,
     EPD: WaveshareDisplayV2<SPI, DELAY>,
     SPI: SpiDevice,
-    DRAWTARGET: DrawTarget<Color = Color> + Buffer,
+    DRAWTARGET: DrawTarget<Color = TriColor> + Buffer,
     DELAY: DelayUs
 {
     type Error = SPI::Error;
 
     fn draw(&mut self, data: Data) -> Result<(), Self::Error> {
         self.display_text.clear();
-        write!(self.display_text, "C02: {}", data.co2).expect("Error occurred while trying to write in String");
+        write!(self.display_text, "CO2: {0} ppm | {1:#.2} °C | {2:#.2} %", data.co2, data.temperature, data.humidity).expect("Error occurred while trying to write in String");
         draw_to_epd(&mut self.spi, &mut self.epd, &mut self.draw_target, &mut self.delay, &self.display_text)?;
         Ok(())
     }
@@ -226,7 +225,7 @@ fn draw_to_epd<'a, SPI, EPD, D, DELAY>(spi: &mut SPI, epd: &mut EPD, draw_target
 where 
     SPI: SpiDevice,
     EPD: WaveshareDisplayV2<SPI, DELAY>,
-    D: DrawTarget<Color = Color> + Buffer,
+    D: DrawTarget<Color = TriColor> + Buffer,
     DELAY: DelayUs {
     draw_text(draw_target, text, 5, 10);
     info!("waking up display");
@@ -248,11 +247,11 @@ where
 
 fn draw_text<DRAWTARGET>(display: &mut DRAWTARGET, text: &str, x: i32, y: i32) 
 where
-    DRAWTARGET: DrawTarget<Color = Color> {
+    DRAWTARGET: DrawTarget<Color = TriColor> {
     let style = MonoTextStyleBuilder::new()
         .font(&embedded_graphics::mono_font::ascii::FONT_8X13_BOLD)
-        .text_color(Color::Black)
-        .background_color(Color::White)
+        .text_color(TriColor::Black)
+        .background_color(TriColor::White)
         .build();
 
     let text_style = TextStyleBuilder::new().baseline(Baseline::Top).build();
