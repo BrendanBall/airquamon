@@ -1,6 +1,8 @@
 [workspace]
 members = [
-    "esp32c3_nostd"
+    "esp32c3_nostd",
+    "display_themes",
+    "airquamon_domain"
 ]
 
 resolver = "2"

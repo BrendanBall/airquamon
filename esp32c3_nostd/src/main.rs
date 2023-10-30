@@ -17,16 +17,11 @@ use esp32c3_hal::{
 use embedded_hal::spi::SpiDevice;
 use embedded_hal::delay::DelayUs;
 use scd4x::scd4x::Scd4x;
-use embedded_graphics::{
-    mono_font::MonoTextStyleBuilder,
-    prelude::*,
-    primitives::{Line, PrimitiveStyle},
-    text::{Baseline, Text, TextStyleBuilder},
-};
+use embedded_graphics::prelude::*;
 use epd_waveshare::{epd2in9b_v3::*, prelude::*, color::{TriColor, ColorType}, graphics};
-use heapless::String;
-use core::fmt::{Write as FmtWrite};
-use log::{info, error};
+use log::info;
+use airquamon_domain::Data;
+use display_themes::{Theme, Theme1};
 
 #[entry]
 fn main() -> ! {
@@ -94,7 +89,7 @@ fn main() -> ! {
         draw_target: display,
         epd: epd,
         delay: delay,
-        display_text: String::new(),
+        theme: Theme1::new(),
     };
 
     sensor.wake_up();
@@ -141,7 +136,7 @@ fn main() -> ! {
 
 
         info!("updating display");
-        display.draw(Data {
+        display.draw(&Data {
             co2: data.co2,
             temperature: data.temperature,
             humidity: data.humidity,
@@ -150,12 +145,6 @@ fn main() -> ! {
         info!("Sleeping");
         DelayUs::delay_ms(&mut delay, 60000);
     }
-}
-
-struct Data {
-    pub co2: u16,
-    pub temperature: f32,
-    pub humidity: f32,
 }
 
 trait Buffer {
@@ -197,52 +186,42 @@ impl<
     }
 }
 
-struct Display<SPI, EPD, DRAWTARGET, DELAY>
+struct Display<SPI, EPD, DRAWTARGET, DELAY, THEME>
     where 
     SPI: SpiDevice,
     EPD: WaveshareThreeColorDisplayV2<SPI, DELAY>,
     DRAWTARGET: DrawTarget<Color = TriColor> + ChromaticBuffer,
-    DELAY: DelayUs
+    DELAY: DelayUs,
+    THEME: Theme<TriColor>
 
 {
     spi: SPI,
     epd: EPD,
     draw_target: DRAWTARGET,
     delay: DELAY,
-    display_text: String<60>,
+    theme: THEME,
 }
 
 trait DisplayTheme {
 
     type Error;
 
-    fn draw(&mut self, data: Data) -> Result<(), Self::Error>;
-    fn draw_text(&mut self, text: &str) -> Result<(), Self::Error>;
+    fn draw(&mut self, data: &Data) -> Result<(), Self::Error>;
 }
 
-impl<SPI, EPD, DRAWTARGET, DELAY> DisplayTheme for Display<SPI, EPD, DRAWTARGET, DELAY> 
+impl<SPI, EPD, DRAWTARGET, DELAY, THEME> DisplayTheme for Display<SPI, EPD, DRAWTARGET, DELAY, THEME> 
     where 
     SPI: SpiDevice,
     EPD: WaveshareThreeColorDisplayV2<SPI, DELAY>,
     SPI: SpiDevice,
     DRAWTARGET: DrawTarget<Color = TriColor> + ChromaticBuffer,
-    DELAY: DelayUs
+    DELAY: DelayUs,
+    THEME: Theme<TriColor>
 {
     type Error = SPI::Error;
 
-    fn draw(&mut self, data: Data) -> Result<(), Self::Error> {
-        self.display_text.clear();
-        write!(self.display_text, "CO2: {0} ppm | {1:#.2} °C | {2:#.2} %", data.co2, data.temperature, data.humidity).expect("Error occurred while trying to write in String");
-        let _ = Line::new(Point::new(5, 50), Point::new(291, 50))
-        .into_styled(PrimitiveStyle::with_stroke(TriColor::Chromatic, 4))
-        .draw(&mut self.draw_target);
-        draw_text(&mut self.draw_target, &self.display_text, 5, 10);
-        draw_to_epd(&mut self.spi, &mut self.epd, &mut self.draw_target, &mut self.delay)?;
-        Ok(())
-    }
-
-    fn draw_text(&mut self, text: &str) -> Result<(), Self::Error> {
-        draw_text(&mut self.draw_target, text, 5, 10);
+    fn draw(&mut self, data: &Data) -> Result<(), Self::Error> {
+        let _ = self.theme.draw(data, &mut self.draw_target);
         draw_to_epd(&mut self.spi, &mut self.epd, &mut self.draw_target, &mut self.delay)?;
         Ok(())
     }
@@ -267,20 +246,4 @@ where
     // Set the EPD to sleep
     epd.sleep(spi, delay)?;
     Ok(())
-}
-
-
-
-fn draw_text<DRAWTARGET>(display: &mut DRAWTARGET, text: &str, x: i32, y: i32) 
-where
-    DRAWTARGET: DrawTarget<Color = TriColor> {
-    let style = MonoTextStyleBuilder::new()
-        .font(&embedded_graphics::mono_font::ascii::FONT_8X13_BOLD)
-        .text_color(TriColor::Black)
-        .background_color(TriColor::White)
-        .build();
-
-    let text_style = TextStyleBuilder::new().baseline(Baseline::Top).build();
-
-    let _ = Text::with_text_style(text, Point::new(x, y), style, text_style).draw(display);
 }
