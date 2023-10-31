@@ -1,7 +1,7 @@
 use crate::Theme;
 use airquamon_domain::Data;
 use embedded_graphics::{
-    mono_font::MonoTextStyleBuilder,
+    mono_font::{MonoTextStyleBuilder, iso_8859_1::FONT_8X13_BOLD},
     prelude::*,
     primitives::{Line, PrimitiveStyle},
     text::{Baseline, Text, TextStyleBuilder},
@@ -24,10 +24,13 @@ impl Theme1 {
 
 impl Theme<TriColor> for Theme1
 {
-    fn draw<DRAWTARGET: DrawTarget<Color = TriColor>>(&mut self, data: &Data, display: &mut DRAWTARGET) -> Result<(), DRAWTARGET::Error> {
+    fn draw<DRAWTARGET: DrawTarget<Color = TriColor> + OriginDimensions>(&mut self, data: &Data, display: &mut DRAWTARGET) -> Result<(), DRAWTARGET::Error> {
         self.display_text.clear();
         write!(self.display_text, "CO2: {0} ppm | {1:#.2} °C | {2:#.2} %", data.co2, data.temperature, data.humidity).expect("Error occurred while trying to write in String");
-        let _ = Line::new(Point::new(5, 50), Point::new(291, 50))
+        let _ = Line::new(
+            Point::new(5, display.size().height as i32 / 2), 
+            Point::new(display.size().width as i32 - 5, display.size().height as i32 / 2)
+            )
             .into_styled(PrimitiveStyle::with_stroke(TriColor::Chromatic, 4))
             .draw(display);
         draw_text(display, &self.display_text, 5, 10)?;
@@ -39,7 +42,7 @@ fn draw_text<DRAWTARGET>(display: &mut DRAWTARGET, text: &str, x: i32, y: i32) -
 where
     DRAWTARGET: DrawTarget<Color = TriColor> {
     let style = MonoTextStyleBuilder::new()
-        .font(&embedded_graphics::mono_font::ascii::FONT_8X13_BOLD)
+        .font(&FONT_8X13_BOLD)
         .text_color(TriColor::Black)
         .background_color(TriColor::White)
         .build();

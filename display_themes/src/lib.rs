@@ -10,5 +10,5 @@ pub trait Theme<COLOR>
 where 
 COLOR: PixelColor,
 {
-    fn draw<DRAWTARGET: DrawTarget<Color = COLOR>>(&mut self, data: &Data, display: &mut DRAWTARGET) -> Result<(), DRAWTARGET::Error>;
+    fn draw<DRAWTARGET: DrawTarget<Color = COLOR> + OriginDimensions>(&mut self, data: &Data, display: &mut DRAWTARGET) -> Result<(), DRAWTARGET::Error>;
 }

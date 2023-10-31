@@ -214,7 +214,7 @@ impl<SPI, EPD, DRAWTARGET, DELAY, THEME> DisplayTheme for Display<SPI, EPD, DRAW
     SPI: SpiDevice,
     EPD: WaveshareThreeColorDisplayV2<SPI, DELAY>,
     SPI: SpiDevice,
-    DRAWTARGET: DrawTarget<Color = TriColor> + ChromaticBuffer,
+    DRAWTARGET: DrawTarget<Color = TriColor> + ChromaticBuffer + OriginDimensions,
     DELAY: DelayUs,
     THEME: Theme<TriColor>
 {
