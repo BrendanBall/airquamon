@@ -9,6 +9,7 @@ use embedded_graphics::{
 use epd_waveshare::color::TriColor;
 use heapless::String;
 use core::fmt::Write;
+use core::fmt;
 
 pub struct Theme1 {
     display_text: String<60>,
@@ -24,7 +25,11 @@ impl Theme1 {
 
 impl Theme<TriColor> for Theme1
 {
-    fn draw<DRAWTARGET: DrawTarget<Color = TriColor> + OriginDimensions>(&mut self, data: &Data, display: &mut DRAWTARGET) -> Result<(), DRAWTARGET::Error> {
+    fn draw<DRAWTARGET>(&mut self, data: &Data, display: &mut DRAWTARGET) -> Result<(), DRAWTARGET::Error> 
+    where 
+    DRAWTARGET: DrawTarget<Color = TriColor> + OriginDimensions,
+    DRAWTARGET::Error: fmt::Debug
+    {
         self.display_text.clear();
         write!(self.display_text, "CO2: {0} ppm | {1:#.2} °C | {2:#.2} %", data.co2, data.temperature, data.humidity).expect("Error occurred while trying to write in String");
         let _ = Line::new(

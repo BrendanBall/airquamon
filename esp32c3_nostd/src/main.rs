@@ -21,7 +21,8 @@ use embedded_graphics::prelude::*;
 use epd_waveshare::{epd2in9b_v3::*, prelude::*, color::{TriColor, ColorType}, graphics};
 use log::info;
 use airquamon_domain::Data;
-use display_themes::{Theme, Theme1};
+use display_themes::{Theme, Theme2};
+use core::fmt;
 
 #[entry]
 fn main() -> ! {
@@ -89,7 +90,7 @@ fn main() -> ! {
         draw_target: display,
         epd: epd,
         delay: delay,
-        theme: Theme1::new(),
+        theme: Theme2::new(),
     };
 
     sensor.wake_up();
@@ -191,6 +192,7 @@ struct Display<SPI, EPD, DRAWTARGET, DELAY, THEME>
     SPI: SpiDevice,
     EPD: WaveshareThreeColorDisplayV2<SPI, DELAY>,
     DRAWTARGET: DrawTarget<Color = TriColor> + ChromaticBuffer,
+    DRAWTARGET::Error: fmt::Debug,
     DELAY: DelayUs,
     THEME: Theme<TriColor>
 
@@ -215,6 +217,7 @@ impl<SPI, EPD, DRAWTARGET, DELAY, THEME> DisplayTheme for Display<SPI, EPD, DRAW
     EPD: WaveshareThreeColorDisplayV2<SPI, DELAY>,
     SPI: SpiDevice,
     DRAWTARGET: DrawTarget<Color = TriColor> + ChromaticBuffer + OriginDimensions,
+    DRAWTARGET::Error: fmt::Debug,
     DELAY: DelayUs,
     THEME: Theme<TriColor>
 {
