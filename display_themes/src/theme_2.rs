@@ -16,15 +16,11 @@ use heapless::String;
 use core::fmt::Write;
 use core::fmt;
 
-pub struct Theme2 {
-    display_text: String<60>,
-}
+pub struct Theme2;
 
 impl Theme2 {
     pub fn new() -> Self {
-        Theme2 { 
-            display_text: String::new(),
-        }
+        Theme2
     }
 }
 
@@ -230,7 +226,7 @@ impl Theme<TriColor> for Theme2
     DRAWTARGET: DrawTarget<Color = TriColor> + OriginDimensions,
     DRAWTARGET::Error: fmt::Debug
     {
-        self.display_text.clear();
+        display.clear(TriColor::White)?;
 
         let display_area = display.bounding_box();
 

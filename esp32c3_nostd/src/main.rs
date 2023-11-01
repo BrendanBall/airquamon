@@ -83,7 +83,6 @@ fn main() -> ! {
    
     let mut display = Display2in9b::default();
     display.set_rotation(DisplayRotation::Rotate270);
-    display.clear(TriColor::White).expect("failed clearing display");
    
     let mut display = Display {
         spi: spi,
