@@ -365,6 +365,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "epd_display"
+version = "0.1.0"
+dependencies = [
+ "airquamon_domain",
+ "display_themes",
+ "embedded-graphics 0.8.1",
+ "embedded-hal 1.0.0-rc.1",
+ "epd-waveshare",
+ "log",
+]
+
+[[package]]
 name = "equivalent"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -468,6 +480,7 @@ dependencies = [
  "embedded-graphics 0.8.1",
  "embedded-hal 1.0.0-rc.1",
  "epd-waveshare",
+ "epd_display",
  "esp-backtrace",
  "esp-hal-common",
  "esp-println",

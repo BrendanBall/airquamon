@@ -14,15 +14,13 @@ use esp32c3_hal::{
     prelude::*, 
     Delay,
 };
-use embedded_hal::spi::SpiDevice;
 use embedded_hal::delay::DelayUs;
 use scd4x::scd4x::Scd4x;
-use embedded_graphics::prelude::*;
-use epd_waveshare::{epd2in9b_v3::*, prelude::*, color::{TriColor, ColorType}, graphics};
+use epd_waveshare::{epd2in9b_v3::{Display2in9b, Epd2in9b}, graphics::DisplayRotation};
 use log::info;
 use airquamon_domain::Data;
-use display_themes::{Theme, Theme2};
-use core::fmt;
+use display_themes::Theme2;
+use epd_display::{Display, DisplayTheme};
 
 #[entry]
 fn main() -> ! {
@@ -81,16 +79,16 @@ fn main() -> ! {
         None
     ).expect("failing setting up epd");
    
-    let mut display = Display2in9b::default();
-    display.set_rotation(DisplayRotation::Rotate270);
+    let mut draw_target = Display2in9b::default();
+    draw_target.set_rotation(DisplayRotation::Rotate270);
    
-    let mut display = Display {
-        spi: spi,
-        draw_target: display,
-        epd: epd,
-        delay: delay,
-        theme: Theme2::new(),
-    };
+    let mut display = Display::new(
+        spi, 
+        epd,
+        draw_target,
+        delay,
+        Theme2::new()
+    );
 
     sensor.wake_up();
     // sensor.set_automatic_self_calibration(true).expect("failed enabling sensor automatic self calibration");
@@ -145,107 +143,4 @@ fn main() -> ! {
         info!("Sleeping");
         DelayUs::delay_ms(&mut delay, 60000);
     }
-}
-
-trait Buffer {
-    fn buffer(&self) -> &[u8];
-}
-
-trait ChromaticBuffer {
-    fn bw_buffer(&self) -> &[u8];
-    fn chromatic_buffer(&self) -> &[u8];
-}
-
-impl<
-        const WIDTH: u32,
-        const HEIGHT: u32,
-        const BWRBIT: bool,
-        const BYTECOUNT: usize,
-        COLOR: ColorType,
-    > Buffer for graphics::Display<WIDTH, HEIGHT, BWRBIT, BYTECOUNT, COLOR> {
-    
-    fn buffer(&self) -> &[u8] {
-        self.buffer()
-    }
-
-}
-
-impl<
-        const WIDTH: u32,
-        const HEIGHT: u32,
-        const BWRBIT: bool,
-        const BYTECOUNT: usize,
-    > ChromaticBuffer for graphics::Display<WIDTH, HEIGHT, BWRBIT, BYTECOUNT, TriColor> {
-    
-    fn bw_buffer(&self) -> &[u8] {
-        self.bw_buffer()
-    }
-
-    fn chromatic_buffer(&self) -> &[u8] {
-        self.chromatic_buffer()
-    }
-}
-
-struct Display<SPI, EPD, DRAWTARGET, DELAY, THEME>
-    where 
-    SPI: SpiDevice,
-    EPD: WaveshareThreeColorDisplayV2<SPI, DELAY>,
-    DRAWTARGET: DrawTarget<Color = TriColor> + ChromaticBuffer,
-    DRAWTARGET::Error: fmt::Debug,
-    DELAY: DelayUs,
-    THEME: Theme<TriColor>
-
-{
-    spi: SPI,
-    epd: EPD,
-    draw_target: DRAWTARGET,
-    delay: DELAY,
-    theme: THEME,
-}
-
-trait DisplayTheme {
-
-    type Error;
-
-    fn draw(&mut self, data: &Data) -> Result<(), Self::Error>;
-}
-
-impl<SPI, EPD, DRAWTARGET, DELAY, THEME> DisplayTheme for Display<SPI, EPD, DRAWTARGET, DELAY, THEME> 
-    where 
-    SPI: SpiDevice,
-    EPD: WaveshareThreeColorDisplayV2<SPI, DELAY>,
-    SPI: SpiDevice,
-    DRAWTARGET: DrawTarget<Color = TriColor> + ChromaticBuffer + OriginDimensions,
-    DRAWTARGET::Error: fmt::Debug,
-    DELAY: DelayUs,
-    THEME: Theme<TriColor>
-{
-    type Error = SPI::Error;
-
-    fn draw(&mut self, data: &Data) -> Result<(), Self::Error> {
-        let _ = self.theme.draw(data, &mut self.draw_target);
-        draw_to_epd(&mut self.spi, &mut self.epd, &mut self.draw_target, &mut self.delay)?;
-        Ok(())
-    }
-}
-
-fn draw_to_epd<'a, SPI, EPD, DRAWTARGET, DELAY>(spi: &mut SPI, epd: &mut EPD, draw_target: &mut DRAWTARGET, delay: &mut DELAY) -> Result<(), SPI::Error>
-where 
-    SPI: SpiDevice,
-    EPD: WaveshareThreeColorDisplayV2<SPI, DELAY>,
-    DRAWTARGET: DrawTarget<Color = TriColor> + ChromaticBuffer,
-    DELAY: DelayUs {
-    info!("waking up display");
-    epd.wake_up(spi, delay)?;
-    
-    epd.wait_until_idle(spi, delay)?;
-
-
-    info!("updating display frame");
-    epd.update_color_frame(spi, delay, draw_target.bw_buffer(), draw_target.chromatic_buffer())?;
-    epd.display_frame(spi, delay)?;
-
-    // Set the EPD to sleep
-    epd.sleep(spi, delay)?;
-    Ok(())
 }
