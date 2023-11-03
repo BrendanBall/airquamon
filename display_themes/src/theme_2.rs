@@ -1,20 +1,23 @@
 use crate::Theme;
 use airquamon_domain::Data;
+use core::fmt;
+use core::fmt::Write;
 use embedded_graphics::{
-    mono_font::{MonoTextStyleBuilder, iso_8859_1::{FONT_6X10, FONT_10X20}},
+    mono_font::{
+        iso_8859_1::{FONT_10X20, FONT_6X10},
+        MonoTextStyleBuilder,
+    },
     prelude::*,
     primitives::{PrimitiveStyle, Rectangle},
-    text::{Text, Alignment},
+    text::{Alignment, Text},
 };
 use embedded_layout::{
     layout::linear::{spacing::FixedMargin, LinearLayout},
+    prelude::*,
     View,
-    prelude::*
 };
 use epd_waveshare::color::TriColor;
 use heapless::String;
-use core::fmt::Write;
-use core::fmt;
 
 pub struct Theme2;
 
@@ -29,7 +32,6 @@ struct Value<T, const TEXTSIZE: usize> {
     bounds: Rectangle,
     value: T,
 }
-
 
 impl<T, const TEXTSIZE: usize> View for Value<T, TEXTSIZE> {
     #[inline]
@@ -75,26 +77,32 @@ impl<const TEXTSIZE: usize> Drawable for Value<CO2, TEXTSIZE> {
         } else {
             TriColor::Black
         };
-       
+
         let value_text_style = MonoTextStyleBuilder::new()
             .font(&FONT_10X20)
             .text_color(value_text_color)
             .background_color(TriColor::White)
             .build();
-        let text = Text::with_alignment(&self.value_text, Point::zero(), value_text_style, Alignment::Center);
+        let text = Text::with_alignment(
+            &self.value_text,
+            Point::zero(),
+            value_text_style,
+            Alignment::Center,
+        );
 
         let label_text_style = MonoTextStyleBuilder::new()
-        .font(&FONT_6X10)
-        .text_color(TriColor::Black)
-        .background_color(TriColor::White)
-        .build();
-        let label_co2 = Text::with_alignment("CO2", Point::zero(), label_text_style, Alignment::Center);
-        let label_ppm = Text::with_alignment("ppm", Point::zero(), label_text_style, Alignment::Center);
-    
+            .font(&FONT_6X10)
+            .text_color(TriColor::Black)
+            .background_color(TriColor::White)
+            .build();
+        let label_co2 =
+            Text::with_alignment("CO2", Point::zero(), label_text_style, Alignment::Center);
+        let label_ppm =
+            Text::with_alignment("ppm", Point::zero(), label_text_style, Alignment::Center);
 
         LinearLayout::horizontal(
             Chain::new(text)
-                .append(LinearLayout::vertical(Chain::new(label_co2).append(label_ppm)).arrange())
+                .append(LinearLayout::vertical(Chain::new(label_co2).append(label_ppm)).arrange()),
         )
         .with_alignment(vertical::Center)
         .with_spacing(FixedMargin(4))
@@ -111,7 +119,8 @@ struct Temperature(f32);
 impl Value<Temperature, 4> {
     fn new(value: Temperature, position: Point, size: Size) -> Self {
         let mut value_text: String<4> = String::new();
-        write!(value_text, "{0:#.1}", value.0).expect("Error occurred while trying to write in String");
+        write!(value_text, "{0:#.1}", value.0)
+            .expect("Error occurred while trying to write in String");
         Self {
             bounds: Rectangle::new(position, size),
             value_text,
@@ -131,26 +140,30 @@ impl<const TEXTSIZE: usize> Drawable for Value<Temperature, TEXTSIZE> {
         // Create a 1px border
         let border = self.bounds.into_styled(border_style);
         border.draw(display)?;
-       
+
         let value_text_style = MonoTextStyleBuilder::new()
             .font(&FONT_10X20)
             .text_color(TriColor::Black)
             .background_color(TriColor::White)
             .build();
 
-        let text = Text::with_alignment(&self.value_text, Point::zero(), value_text_style, Alignment::Center);
+        let text = Text::with_alignment(
+            &self.value_text,
+            Point::zero(),
+            value_text_style,
+            Alignment::Center,
+        );
 
         let label_text_style = MonoTextStyleBuilder::new()
-        .font(&FONT_6X10)
-        .text_color(TriColor::Black)
-        .background_color(TriColor::White)
-        .build();
-        let label_degrees = Text::with_alignment("°C", Point::zero(), label_text_style, Alignment::Center);
-    
+            .font(&FONT_6X10)
+            .text_color(TriColor::Black)
+            .background_color(TriColor::White)
+            .build();
+        let label_degrees =
+            Text::with_alignment("°C", Point::zero(), label_text_style, Alignment::Center);
 
         LinearLayout::horizontal(
-            Chain::new(text)
-                .append(LinearLayout::vertical(Chain::new(label_degrees)).arrange())
+            Chain::new(text).append(LinearLayout::vertical(Chain::new(label_degrees)).arrange()),
         )
         .with_alignment(vertical::Center)
         .with_spacing(FixedMargin(4))
@@ -167,7 +180,8 @@ struct Humidity(f32);
 impl Value<Humidity, 4> {
     fn new(value: Humidity, position: Point, size: Size) -> Self {
         let mut value_text: String<4> = String::new();
-        write!(value_text, "{0:#.1}", value.0).expect("Error occurred while trying to write in String");
+        write!(value_text, "{0:#.1}", value.0)
+            .expect("Error occurred while trying to write in String");
         Self {
             bounds: Rectangle::new(position, size),
             value_text,
@@ -187,28 +201,33 @@ impl<const TEXTSIZE: usize> Drawable for Value<Humidity, TEXTSIZE> {
         // Create a 1px border
         let border = self.bounds.into_styled(border_style);
         border.draw(display)?;
-       
+
         let value_text_style = MonoTextStyleBuilder::new()
             .font(&FONT_10X20)
             .text_color(TriColor::Black)
             .background_color(TriColor::White)
             .build();
 
-        let text = Text::with_alignment(&self.value_text, Point::zero(), value_text_style, Alignment::Center);
+        let text = Text::with_alignment(
+            &self.value_text,
+            Point::zero(),
+            value_text_style,
+            Alignment::Center,
+        );
 
         let label_text_style = MonoTextStyleBuilder::new()
-        .font(&FONT_6X10)
-        .text_color(TriColor::Black)
-        .background_color(TriColor::White)
-        .build();
-        let label_rh = Text::with_alignment("RH", Point::zero(), label_text_style, Alignment::Center);
-        let label_percentage = Text::with_alignment("%", Point::zero(), label_text_style, Alignment::Center);
-    
+            .font(&FONT_6X10)
+            .text_color(TriColor::Black)
+            .background_color(TriColor::White)
+            .build();
+        let label_rh =
+            Text::with_alignment("RH", Point::zero(), label_text_style, Alignment::Center);
+        let label_percentage =
+            Text::with_alignment("%", Point::zero(), label_text_style, Alignment::Center);
 
-        LinearLayout::horizontal(
-            Chain::new(text)
-                .append(LinearLayout::vertical(Chain::new(label_rh).append(label_percentage)).arrange())
-        )
+        LinearLayout::horizontal(Chain::new(text).append(
+            LinearLayout::vertical(Chain::new(label_rh).append(label_percentage)).arrange(),
+        ))
         .with_alignment(vertical::Center)
         .with_spacing(FixedMargin(4))
         .arrange()
@@ -219,33 +238,33 @@ impl<const TEXTSIZE: usize> Drawable for Value<Humidity, TEXTSIZE> {
     }
 }
 
-impl Theme<TriColor> for Theme2
-{
-    fn draw<DRAWTARGET>(&mut self, data: &Data, display: &mut DRAWTARGET) -> Result<(), DRAWTARGET::Error> 
-    where 
-    DRAWTARGET: DrawTarget<Color = TriColor> + OriginDimensions,
-    DRAWTARGET::Error: fmt::Debug
+impl Theme<TriColor> for Theme2 {
+    fn draw<DRAWTARGET>(
+        &mut self,
+        data: &Data,
+        display: &mut DRAWTARGET,
+    ) -> Result<(), DRAWTARGET::Error>
+    where
+        DRAWTARGET: DrawTarget<Color = TriColor> + OriginDimensions,
+        DRAWTARGET::Error: fmt::Debug,
     {
         display.clear(TriColor::White)?;
 
         let display_area = display.bounding_box();
 
-        let box_size = Size::new(80, 80); 
+        let box_size = Size::new(80, 80);
 
         let co2 = Value::<CO2, 4>::new(CO2(data.co2), Point::zero(), box_size);
-        let temperature = Value::<Temperature, 4>::new(Temperature(data.temperature), Point::zero(), box_size);
+        let temperature =
+            Value::<Temperature, 4>::new(Temperature(data.temperature), Point::zero(), box_size);
         let humidity = Value::<Humidity, 4>::new(Humidity(data.humidity), Point::zero(), box_size);
 
-        LinearLayout::horizontal(
-            Chain::new(co2)
-                .append(temperature)
-                .append(humidity)
-        )
-        // .with_spacing(FixedMargin(4))
-        .arrange()
-        .align_to(&display_area, horizontal::Center, vertical::Center)
-        .draw(display)?;
-    
+        LinearLayout::horizontal(Chain::new(co2).append(temperature).append(humidity))
+            // .with_spacing(FixedMargin(4))
+            .arrange()
+            .align_to(&display_area, horizontal::Center, vertical::Center)
+            .draw(display)?;
+
         Ok(())
     }
 }

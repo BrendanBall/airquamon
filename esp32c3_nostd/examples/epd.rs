@@ -4,11 +4,11 @@
 use esp_backtrace as _;
 use esp_println::println;
 use hal::{
-    clock::ClockControl, 
-    peripherals::Peripherals, 
-    spi::{Spi, SpiMode},
+    clock::ClockControl,
     gpio::IO,
-    prelude::*, 
+    peripherals::Peripherals,
+    prelude::*,
+    spi::{Spi, SpiMode},
     Delay,
 };
 // use embedded_graphics::{
@@ -20,14 +20,14 @@ use embedded_graphics::{
     primitives::{Circle, Line, PrimitiveStyle},
     text::{Baseline, Text, TextStyleBuilder},
 };
-use epd_waveshare::{epd2in9bc::*, prelude::*, color::*};
+use epd_waveshare::{color::*, epd2in9bc::*, prelude::*};
 
 use log::info;
 
 #[derive(Debug)]
 enum Error {
-    EpdError
-} 
+    EpdError,
+}
 
 #[entry]
 fn main() -> ! {
@@ -65,37 +65,25 @@ fn main() -> ! {
     info!("Connecting to display");
 
     // Setup EPD
-    let mut epd = Epd2in9bc::new(
-        &mut spi, 
-        cs, 
-        busy, 
-        dc, 
-        rst, 
-        &mut delay
-    ).unwrap();
+    let mut epd = Epd2in9bc::new(&mut spi, cs, busy, dc, rst, &mut delay).unwrap();
 
     let mut display = EpdDisplay::new(&mut spi, &mut epd, &mut delay);
 
-
     // update_display(&mut delay, "Airquamon!").unwrap();
-
 
     loop {
         delay.delay_ms(5000u16);
 
         info!("Waiting for data ready");
-  
     }
 }
 
-trait Display<DELAY> 
+trait Display<DELAY>
 where
     DELAY: DelayMs<u8>,
 {
     fn sleep(&self) -> Result<(), Error>;
     fn update_display(text: &str) -> Result<(), Error>;
-
-
 }
 
 struct EpdDisplay<SPI, CS, BUSY, DC, RST, DELAY> {
@@ -105,7 +93,6 @@ struct EpdDisplay<SPI, CS, BUSY, DC, RST, DELAY> {
 }
 
 impl Display for EpdDisplay<SPI, CS, BUSY, DC, RST, DELAY> {
-
     fn sleep(&self) -> Result<(), Error> {
         self.epd.sleep(&mut self.spi, &mut self.delay)?;
         Ok(())
@@ -115,23 +102,21 @@ impl Display for EpdDisplay<SPI, CS, BUSY, DC, RST, DELAY> {
         let mut mono_display = Display2in9bc::default();
         mono_display.set_rotation(DisplayRotation::Rotate0);
         draw_text(&mut mono_display, text, 5, 10);
-        self.epd.update_frame(&mut spi, mono_display.buffer(), &mut delay)?;
         self.epd
-        .display_frame(&mut spi, &mut delay)?;
+            .update_frame(&mut spi, mono_display.buffer(), &mut delay)?;
+        self.epd.display_frame(&mut spi, &mut delay)?;
         self.epd.sleep(&mut self.spi, &mut self.delay)?;
         Ok(())
     }
-
-
 }
 
 impl EpdDisplay<SPI, CS, BUSY, DC, RST, DELAY> {
-    fn new(spi: &mut SPI, epd: &mut WaveshareDisplay<SPI, CS, BUSY, DC, RST, DELAY>, delay: &mut DELAY) {
-        EpdDisplay{
-            epd,
-            spi,
-            delay,
-        }
+    fn new(
+        spi: &mut SPI,
+        epd: &mut WaveshareDisplay<SPI, CS, BUSY, DC, RST, DELAY>,
+        delay: &mut DELAY,
+    ) {
+        EpdDisplay { epd, spi, delay }
     }
 }
 

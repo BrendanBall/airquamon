@@ -3,27 +3,26 @@
 
 use esp_backtrace as _;
 
-use esp32c3_hal::{
-    clock::ClockControl, 
-    peripherals::Peripherals, 
-    spi::{
-        master::{Spi, SpiBusController},
-        SpiMode,
-    },
-    gpio::IO,
-    prelude::*, 
-    Delay,
-};
+use core::fmt::{self, Write as FmtWrite};
 use embedded_graphics::{
     mono_font::MonoTextStyleBuilder,
     prelude::*,
     text::{Baseline, Text, TextStyleBuilder},
 };
-use epd_waveshare::{epd2in9b_v3::*, prelude::*, color::Color};
+use epd_waveshare::{color::Color, epd2in9b_v3::*, prelude::*};
+use esp32c3_hal::{
+    clock::ClockControl,
+    gpio::IO,
+    peripherals::Peripherals,
+    prelude::*,
+    spi::{
+        master::{Spi, SpiBusController},
+        SpiMode,
+    },
+    Delay,
+};
 use heapless::String;
-use core::fmt::{self, Write as FmtWrite};
-use log::{info, error};
-
+use log::{error, info};
 
 #[entry]
 fn main() -> ! {
@@ -60,15 +59,8 @@ fn main() -> ! {
     info!("Connecting to display");
 
     // Setup EPD
-    let mut epd = Epd2in9b::new(
-        &mut spi, 
-        busy, 
-        dc, 
-        rst, 
-        &mut delay,
-        None
-    ).expect("failing setting up epd");
-
+    let mut epd =
+        Epd2in9b::new(&mut spi, busy, dc, rst, &mut delay, None).expect("failing setting up epd");
 
     let mut mono_display = Display2in9b::default();
 
@@ -77,15 +69,17 @@ fn main() -> ! {
 
     // epd.wake_up(&mut spi, &mut delay).expect("Failed waking up epd");
 
-    epd.wait_until_idle(&mut spi, &mut delay).expect("Failed waiting until idle");
+    epd.wait_until_idle(&mut spi, &mut delay)
+        .expect("Failed waiting until idle");
 
-    epd.update_frame(&mut spi, mono_display.buffer(), &mut delay).expect("Failed updating frame");
-    epd
-        .display_frame(&mut spi, &mut delay).expect("Failed displaying frame");
+    epd.update_frame(&mut spi, mono_display.buffer(), &mut delay)
+        .expect("Failed updating frame");
+    epd.display_frame(&mut spi, &mut delay)
+        .expect("Failed displaying frame");
 
     // Set the EPD to sleep
-    epd.sleep(&mut spi, &mut delay).expect("Failed sleeping epd");
-
+    epd.sleep(&mut spi, &mut delay)
+        .expect("Failed sleeping epd");
 
     let mut counter = 0;
     let mut counter_text: String<20> = String::new();
@@ -93,7 +87,8 @@ fn main() -> ! {
     loop {
         counter_text.clear();
         // fmt::write(&mut counter_text, format_args!("Counter: {}", counter)).expect("Error occurred while trying to write in String");
-        write!(counter_text, "Counter: {counter}").expect("Error occurred while trying to write in String");
+        write!(counter_text, "Counter: {counter}")
+            .expect("Error occurred while trying to write in String");
         info!("Sleeping");
         delay.delay_ms(30000u16);
 
@@ -101,24 +96,26 @@ fn main() -> ! {
 
         mono_display.set_rotation(DisplayRotation::Rotate270);
         draw_text(&mut mono_display, counter_text.as_str(), 5, 10);
-    
-        info!("waking up display");
-        epd.wake_up(&mut spi, &mut delay).expect("Failed waking up epd");
-        
-        epd.wait_until_idle(&mut spi, &mut delay).expect("Failed waiting until idle");
 
+        info!("waking up display");
+        epd.wake_up(&mut spi, &mut delay)
+            .expect("Failed waking up epd");
+
+        epd.wait_until_idle(&mut spi, &mut delay)
+            .expect("Failed waiting until idle");
 
         info!("updating display frame");
-        epd.update_frame(&mut spi, mono_display.buffer(), &mut delay).expect("Failed updating frame");
-        epd
-            .display_frame(&mut spi, &mut delay).expect("Failed displaying frame");
-    
+        epd.update_frame(&mut spi, mono_display.buffer(), &mut delay)
+            .expect("Failed updating frame");
+        epd.display_frame(&mut spi, &mut delay)
+            .expect("Failed displaying frame");
+
         // Set the EPD to sleep
-        epd.sleep(&mut spi, &mut delay).expect("Failed sleeping epd");
+        epd.sleep(&mut spi, &mut delay)
+            .expect("Failed sleeping epd");
         counter += 1;
     }
 }
-
 
 fn draw_text(display: &mut Display2in9b, text: &str, x: i32, y: i32) {
     let style = MonoTextStyleBuilder::new()

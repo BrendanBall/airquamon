@@ -1,32 +1,31 @@
-use airquamon_domain::Data;
-use embedded_hal::{i2c::I2c, delay::DelayUs};
-use scd4x::{Scd4x, Error};
 use crate::Sensor;
+use airquamon_domain::Data;
+use embedded_hal::{delay::DelayUs, i2c::I2c};
+use scd4x::{Error, Scd4x};
 
 pub struct Scd4xSensor<I2C, DELAY> {
     scd4x: Scd4x<I2C, DELAY>,
     delay: DELAY,
 }
 
-impl<I2C, DELAY> Scd4xSensor<I2C, DELAY> 
-where 
-I2C: I2c,
-DELAY: DelayUs + Copy,
+impl<I2C, DELAY> Scd4xSensor<I2C, DELAY>
+where
+    I2C: I2c,
+    DELAY: DelayUs + Copy,
 {
     pub fn new(i2c: I2C, delay: DELAY) -> Self {
-        Self { 
-            scd4x: Scd4x::new(i2c, delay), 
+        Self {
+            scd4x: Scd4x::new(i2c, delay),
             delay,
         }
     }
 }
 
-impl<I2C, DELAY> Sensor for Scd4xSensor<I2C, DELAY> 
-where 
-I2C: I2c,
-DELAY: DelayUs,
+impl<I2C, DELAY> Sensor for Scd4xSensor<I2C, DELAY>
+where
+    I2C: I2c,
+    DELAY: DelayUs,
 {
-
     type Error = Error<I2C::Error>;
 
     fn measure(&mut self) -> Result<Data, Self::Error> {
@@ -40,16 +39,16 @@ DELAY: DelayUs,
                 Ok(false) => {
                     self.delay.delay_ms(100);
                     Ok(())
-                },
+                }
                 Err(e) => Err(e),
             }?;
         }
         let data = self.scd4x.measurement()?;
         self.scd4x.stop_periodic_measurement()?;
-        Ok(Data { 
-            co2: data.co2, 
-            temperature: data.temperature, 
-            humidity: data.humidity 
+        Ok(Data {
+            co2: data.co2,
+            temperature: data.temperature,
+            humidity: data.humidity,
         })
     }
 }

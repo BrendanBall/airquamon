@@ -1,35 +1,35 @@
 #![no_std]
 #![no_main]
 
+use embedded_hal::blocking::spi::Write;
+use embedded_hal::digital::v2::{InputPin, OutputPin};
 use esp_backtrace as _;
 use esp_println::println;
 use hal::{
-    clock::ClockControl, 
-    peripherals::Peripherals, 
-    spi::{Spi, SpiMode, FullDuplexMode},
+    clock::ClockControl,
     gpio::IO,
-    prelude::*, 
+    peripherals::Peripherals,
+    prelude::*,
+    spi::{FullDuplexMode, Spi, SpiMode},
     Delay,
 };
-use embedded_hal::blocking::spi::Write;
-use embedded_hal::digital::v2::{OutputPin, InputPin};
 // use embedded_graphics::{
 //     pixelcolor::BinaryColor::On as Black, prelude::*, primitives::{Line, PrimitiveStyle},
 // };
 use embedded_graphics::{
-    mono_font::{MonoTextStyle, ascii},
+    mono_font::{ascii, MonoTextStyle},
+    pixelcolor::BinaryColor,
     prelude::*,
     primitives::{Circle, Line, PrimitiveStyle},
     text::{Baseline, Text, TextStyleBuilder},
-    pixelcolor::BinaryColor,
 };
 
-use log::{info, error};
+use log::{error, info};
 use max7219_driver::MAX7219LedMat;
 
 enum Error<T: Write<u8>> {
-    EpdError(<T as Write<u8>>::Error)
-} 
+    EpdError(<T as Write<u8>>::Error),
+}
 
 #[entry]
 fn main() -> ! {
@@ -62,7 +62,8 @@ fn main() -> ! {
     );
 
     info!("Connecting to MAX7219 display");
-    let mut display: MAX7219LedMat<_, _, 256, 4> = MAX7219LedMat::new(spi, cs).expect("failed instantiating display");
+    let mut display: MAX7219LedMat<_, _, 256, 4> =
+        MAX7219LedMat::new(spi, cs).expect("failed instantiating display");
     display.init_display(true);
 
     let txtstyle = MonoTextStyle::new(&ascii::FONT_6X10, BinaryColor::On);
@@ -74,6 +75,5 @@ fn main() -> ! {
         delay.delay_ms(5000u16);
 
         info!("Waiting");
-  
     }
 }

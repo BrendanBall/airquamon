@@ -1,24 +1,27 @@
 #![no_std]
 #![no_main]
 
-use esp_backtrace as _;
+use display_themes::Theme2;
+use epd_display::{Display, DisplayTheme};
+use epd_waveshare::{
+    epd2in9b_v3::{Display2in9b, Epd2in9b},
+    graphics::DisplayRotation,
+};
 use esp32c3_hal::{
-    clock::ClockControl, 
-    peripherals::Peripherals, 
+    clock::ClockControl,
+    gpio::IO,
     i2c::I2C,
+    peripherals::Peripherals,
+    prelude::*,
     spi::{
         master::{Spi, SpiBusController},
         SpiMode,
     },
-    gpio::IO,
-    prelude::*, 
     Delay,
 };
-use epd_waveshare::{epd2in9b_v3::{Display2in9b, Epd2in9b}, graphics::DisplayRotation};
+use esp_backtrace as _;
 use log::info;
-use display_themes::Theme2;
-use epd_display::{Display, DisplayTheme};
-use sensor::{Sensor, Scd4xSensor};
+use sensor::{Scd4xSensor, Sensor};
 
 #[entry]
 fn main() -> ! {
@@ -38,13 +41,7 @@ fn main() -> ! {
     let i2c_scl = io.pins.gpio0;
     let i2c_sda = io.pins.gpio1;
 
-    let i2c = I2C::new(
-        peripherals.I2C0,
-        i2c_sda,
-        i2c_scl,
-        100u32.kHz(),
-        &clocks,
-    );
+    let i2c = I2C::new(peripherals.I2C0, i2c_sda, i2c_scl, 100u32.kHz(), &clocks);
 
     info!("Connecting to sensor");
     let mut sensor = Scd4xSensor::new(i2c, delay);
@@ -68,25 +65,13 @@ fn main() -> ! {
 
     info!("Connecting to display");
 
-    let epd = Epd2in9b::new(
-        &mut spi, 
-        busy, 
-        dc, 
-        rst, 
-        &mut delay,
-        None
-    ).expect("failing setting up epd");
-   
+    let epd =
+        Epd2in9b::new(&mut spi, busy, dc, rst, &mut delay, None).expect("failing setting up epd");
+
     let mut draw_target = Display2in9b::default();
     draw_target.set_rotation(DisplayRotation::Rotate270);
-   
-    let mut display = Display::new(
-        spi, 
-        epd,
-        draw_target,
-        delay,
-        Theme2::new()
-    );
+
+    let mut display = Display::new(spi, epd, draw_target, delay, Theme2::new());
 
     loop {
         let data = sensor.measure().expect("failed reading sensor");

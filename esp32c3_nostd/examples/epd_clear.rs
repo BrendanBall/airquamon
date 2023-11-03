@@ -3,20 +3,19 @@
 
 use esp_backtrace as _;
 
+use epd_waveshare::{epd2in9b_v3::*, prelude::*};
 use esp32c3_hal::{
-    clock::ClockControl, 
-    peripherals::Peripherals, 
+    clock::ClockControl,
+    gpio::IO,
+    peripherals::Peripherals,
+    prelude::*,
     spi::{
         master::{Spi, SpiBusController},
         SpiMode,
     },
-    gpio::IO,
-    prelude::*, 
     Delay,
 };
-use epd_waveshare::{epd2in9b_v3::*, prelude::*};
 use log::info;
-
 
 #[entry]
 fn main() -> ! {
@@ -53,24 +52,20 @@ fn main() -> ! {
     info!("Connecting to display");
 
     // Setup EPD
-    let mut epd = Epd2in9b::new(
-        &mut spi, 
-        busy, 
-        dc, 
-        rst, 
-        &mut delay,
-        None
-    ).expect("failing setting up epd");
+    let mut epd =
+        Epd2in9b::new(&mut spi, busy, dc, rst, &mut delay, None).expect("failing setting up epd");
 
+    epd.wait_until_idle(&mut spi, &mut delay)
+        .expect("Failed waiting until idle");
 
-    epd.wait_until_idle(&mut spi, &mut delay).expect("Failed waiting until idle");
-
-    epd.clear_frame(&mut spi, &mut delay).expect("Failed clearing frame");
-    epd
-        .display_frame(&mut spi, &mut delay).expect("Failed displaying frame");
+    epd.clear_frame(&mut spi, &mut delay)
+        .expect("Failed clearing frame");
+    epd.display_frame(&mut spi, &mut delay)
+        .expect("Failed displaying frame");
 
     // Set the EPD to sleep
-    epd.sleep(&mut spi, &mut delay).expect("Failed sleeping epd");
+    epd.sleep(&mut spi, &mut delay)
+        .expect("Failed sleeping epd");
 
     loop {
         info!("Sleeping");
