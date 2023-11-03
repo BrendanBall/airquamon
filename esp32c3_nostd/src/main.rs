@@ -14,13 +14,11 @@ use esp32c3_hal::{
     prelude::*, 
     Delay,
 };
-use embedded_hal::delay::DelayUs;
-use scd4x::scd4x::Scd4x;
 use epd_waveshare::{epd2in9b_v3::{Display2in9b, Epd2in9b}, graphics::DisplayRotation};
 use log::info;
-use airquamon_domain::Data;
 use display_themes::Theme2;
 use epd_display::{Display, DisplayTheme};
+use sensor::{Sensor, Scd4xSensor};
 
 #[entry]
 fn main() -> ! {
@@ -49,7 +47,7 @@ fn main() -> ! {
     );
 
     info!("Connecting to sensor");
-    let mut sensor = Scd4x::new(i2c, delay);
+    let mut sensor = Scd4xSensor::new(i2c, delay);
 
     let mosi = io.pins.gpio4;
     let sck = io.pins.gpio5;
@@ -90,57 +88,18 @@ fn main() -> ! {
         Theme2::new()
     );
 
-    sensor.wake_up();
-    // sensor.set_automatic_self_calibration(true).expect("failed enabling sensor automatic self calibration");
-    sensor.stop_periodic_measurement().unwrap();
-    sensor.reinit().unwrap();
-
-    let serial = sensor.serial_number().unwrap();
-    info!("Serial: {:#04x}", serial);
-
     loop {
-        // sensor.wake_up();
-        info!("Starting periodic measurement");
-        sensor.start_periodic_measurement().unwrap();
-        DelayUs::delay_ms(&mut delay, 5000);
-
-        info!("Waiting for data ready");
-        loop {
-            match sensor.data_ready_status() {
-                Ok(true) => break,
-                Ok(false) => DelayUs::delay_ms(&mut delay, 100),
-                Err(e) => {
-                    panic!("Failed to poll for data ready: {:?}", e);
-                },
-            }
-        }
-
-        info!("Reading sensor data");
-        let data = match sensor.measurement() {
-            Ok(v) => v,
-            Err(e) => {
-                panic!("Failed to read measurement: {:?}", e);
-            },
-        };
+        let data = sensor.measure().expect("failed reading sensor");
 
         info!(
             "CO2: {0}, Temperature: {1:#.2} °C, Humidity: {2:#.2} RH",
             data.co2, data.temperature, data.humidity
         );
 
-        info!("Stop sensor periodic measurement");
-        // sensor.power_down().expect("failed powering down sensor");
-        sensor.stop_periodic_measurement().expect("failed to stop sensor periodic measurement");
-
-
         info!("updating display");
-        display.draw(&Data {
-            co2: data.co2,
-            temperature: data.temperature,
-            humidity: data.humidity,
-        }).expect("draw failed");
+        display.draw(&data).expect("draw failed");
 
         info!("Sleeping");
-        DelayUs::delay_ms(&mut delay, 60000);
+        delay.delay_ms(60000u32);
     }
 }

@@ -9,12 +9,12 @@ edition = "2021"
 airquamon_domain = { path = "../airquamon_domain" }
 display_themes = { path = "../display_themes" }
 epd_display = { path = "../epd_display" }
+sensor = { path = "../sensor" }
 esp32c3-hal = { git = "https://github.com/esp-rs/esp-hal.git", rev = "33bfe80d958911f4d0b43adb89cca34b5dce1676", features = ["eh1"] }
 esp-hal-common = { git = "https://github.com/esp-rs/esp-hal.git", rev = "33bfe80d958911f4d0b43adb89cca34b5dce1676", features = ["esp32c3", "eh1"] }
 esp-backtrace = { version = "0.8.0", features = ["esp32c3", "panic-handler", "exception-handler", "print-uart"] }
 esp-println = { version = "0.6.0", features = ["esp32c3","log"] }
 log = { version = "0.4.18" }
-scd4x = "0.2.1"
 epd-waveshare = { path = "/home/brendan/dev/projects/epd-waveshare" }
 embedded-graphics = "0.8.1"
 embedded-hal = "1.0.0-rc.1"

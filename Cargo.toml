@@ -3,7 +3,8 @@ members = [
     "airquamon_domain",
     "display_themes",
     "esp32c3_nostd",
-    "epd_display"
+    "epd_display",
+    "sensor"
 ]
 
 resolver = "2"

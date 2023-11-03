@@ -1,0 +1,15 @@
+[package]
+name = "sensor"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+airquamon_domain = { path = "../airquamon_domain" }
+embedded-hal = "1.0.0-rc.1"
+
+[dependencies.scd4x]
+version = "0.2.1" 
+path = "../../../scd4x-rs"
+default-features = false

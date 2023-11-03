@@ -489,7 +489,7 @@ dependencies = [
  "log",
  "max7219",
  "max7219-driver",
- "scd4x",
+ "sensor",
 ]
 
 [[package]]
@@ -956,10 +956,9 @@ checksum = "7ffc183a10b4478d04cbbbfc96d0873219d962dd5accaff2ffbd4ceb7df837f4"
 [[package]]
 name = "scd4x"
 version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac1e1abfa47df52b13ccc801bb4461849c718fee09cd4c8505012e2b565a2c36"
 dependencies = [
- "embedded-hal 0.2.7",
+ "embedded-hal 1.0.0-rc.1",
+ "log",
  "sensirion-i2c",
 ]
 
@@ -1011,6 +1010,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37f8a8f52f850f281f9faebd9dc09d68caa29d6ce1dfd3806686b316258768d6"
 dependencies = [
  "embedded-hal 0.2.7",
+]
+
+[[package]]
+name = "sensor"
+version = "0.1.0"
+dependencies = [
+ "airquamon_domain",
+ "embedded-hal 1.0.0-rc.1",
+ "scd4x",
 ]
 
 [[package]]
