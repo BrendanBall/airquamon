@@ -11,7 +11,7 @@ resolver = "2"
 
 [workspace.dependencies]
 defmt = "=0.3.5"
-esp32c3-hal = { git = "https://github.com/esp-rs/esp-hal.git", rev = "33bfe80d958911f4d0b43adb89cca34b5dce1676" }
+esp32c3-hal = "0.13.0"
 critical-section = "1.1.1"
 atomic-polyfill = "1.0.2"
 log = "0.4.18"
