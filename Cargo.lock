@@ -480,6 +480,7 @@ name = "esp32c3_nostd"
 version = "0.1.0"
 dependencies = [
  "airquamon_domain",
+ "critical-section",
  "display_themes",
  "embedded-graphics 0.8.1",
  "embedded-hal 1.0.0-rc.1",

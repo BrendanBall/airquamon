@@ -42,6 +42,8 @@ SPI2 can be used on any GPIO pins
 - https://docs.rs/esp32c3-hal/latest/esp32c3_hal/i2c/index.html
 - https://www.allaboutcircuits.com/technical-articles/spi-serial-peripheral-interface
 - https://github.com/waveshareteam/Pico_ePaper_Code
+- https://projects.raspberrypi.org/en/projects/button-switch-scratch-pi/1
+- https://microcontrollerslab.com/push-button-esp32-gpio-digital-input/
 
 ## Acknowledgements
 - hauju for releasing https://github.com/hauju/scd4x-rs

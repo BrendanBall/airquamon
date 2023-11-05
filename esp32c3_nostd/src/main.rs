@@ -1,6 +1,8 @@
 #![no_std]
 #![no_main]
 
+use core::cell::RefCell;
+use critical_section::Mutex;
 use display_themes::Theme2;
 use epd_display::{Display, DisplayTheme};
 use epd_waveshare::{
@@ -9,10 +11,12 @@ use epd_waveshare::{
 };
 use esp32c3_hal::{
     clock::ClockControl,
-    gpio::IO,
+    gpio::{Event, Gpio3, Gpio9, Input, PullDown, PullUp, IO},
     i2c::I2C,
-    peripherals::Peripherals,
+    interrupt,
+    peripherals::{self, Peripherals},
     prelude::*,
+    riscv,
     spi::{
         master::{Spi, SpiBusController},
         SpiMode,
@@ -21,7 +25,10 @@ use esp32c3_hal::{
 };
 use esp_backtrace as _;
 use log::info;
-use sensor::{Scd4xSensor, Sensor};
+use sensor::{MockSensor, Scd4xSensor, Sensor};
+
+static BOOT_BUTTON: Mutex<RefCell<Option<Gpio9<Input<PullDown>>>>> = Mutex::new(RefCell::new(None));
+static BUTTON: Mutex<RefCell<Option<Gpio3<Input<PullUp>>>>> = Mutex::new(RefCell::new(None));
 
 #[entry]
 fn main() -> ! {
@@ -45,6 +52,7 @@ fn main() -> ! {
 
     info!("Connecting to sensor");
     let mut sensor = Scd4xSensor::new(i2c, delay);
+    // let mut sensor = MockSensor::new(500, 19f32, 69f32);
 
     let mosi = io.pins.gpio4;
     let sck = io.pins.gpio5;
@@ -52,6 +60,21 @@ fn main() -> ! {
     let dc = io.pins.gpio7.into_push_pull_output();
     let rst = io.pins.gpio18.into_push_pull_output();
     let busy = io.pins.gpio19.into_pull_down_input();
+
+    let mut boot_button = io.pins.gpio9.into_pull_down_input();
+    boot_button.listen(Event::FallingEdge);
+
+    let mut button = io.pins.gpio3.into_pull_up_input();
+    button.listen(Event::RisingEdge);
+
+    critical_section::with(|cs| BOOT_BUTTON.borrow_ref_mut(cs).replace(boot_button));
+    critical_section::with(|cs| BUTTON.borrow_ref_mut(cs).replace(button));
+
+    interrupt::enable(peripherals::Interrupt::GPIO, interrupt::Priority::Priority3).unwrap();
+
+    unsafe {
+        riscv::interrupt::enable();
+    }
 
     let spi_controller = SpiBusController::from_spi(Spi::new_no_cs_no_miso(
         peripherals.SPI2,
@@ -87,4 +110,21 @@ fn main() -> ! {
         info!("Sleeping");
         delay.delay_ms(60000u32);
     }
+}
+
+#[interrupt]
+fn GPIO() {
+    critical_section::with(|cs| {
+        info!("Button was pressed");
+        BOOT_BUTTON
+            .borrow_ref_mut(cs)
+            .as_mut()
+            .unwrap()
+            .clear_interrupt();
+        BUTTON
+            .borrow_ref_mut(cs)
+            .as_mut()
+            .unwrap()
+            .clear_interrupt();
+    });
 }
