@@ -10,6 +10,9 @@ pub use theme_1::Theme1;
 mod theme_2;
 pub use theme_2::Theme2;
 
+mod theme_3;
+pub use theme_3::Theme3;
+
 pub trait Theme<COLOR>
 where
     COLOR: PixelColor,

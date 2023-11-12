@@ -18,10 +18,11 @@ use embedded_layout::{
 };
 use epd_waveshare::color::TriColor;
 use heapless::String;
+use u8g2_fonts::{fonts, U8g2TextStyle};
 
-pub struct Theme2;
+pub struct Theme3;
 
-impl Theme2 {
+impl Theme3 {
     pub fn new() -> Self {
         Self
     }
@@ -68,7 +69,7 @@ impl Drawable for Value<CO2> {
         let border = self.bounds.into_styled(border_style);
         border.draw(display)?;
 
-        let value_text_color = if self.value.0 > 800 {
+        let level_color = if self.value.0 > 800 {
             TriColor::Chromatic
         } else {
             TriColor::Black
@@ -76,7 +77,7 @@ impl Drawable for Value<CO2> {
 
         let value_text_style = MonoTextStyleBuilder::new()
             .font(&FONT_10X20)
-            .text_color(value_text_color)
+            .text_color(level_color)
             .background_color(TriColor::White)
             .build();
 
@@ -101,11 +102,35 @@ impl Drawable for Value<CO2> {
         let label_ppm =
             Text::with_alignment("ppm", Point::zero(), label_text_style, Alignment::Center);
 
-        LinearLayout::horizontal(
-            Chain::new(text)
-                .append(LinearLayout::vertical(Chain::new(label_co2).append(label_ppm)).arrange()),
+        let emoticons_character_style =
+            U8g2TextStyle::new(fonts::u8g2_font_unifont_t_emoticons, level_color);
+
+        let level_text = if self.value.0 > 800 {
+            "\u{0055}"
+        } else {
+            "\u{0023}"
+        };
+
+        let label_level = Text::with_alignment(
+            level_text,
+            Point::zero(),
+            emoticons_character_style,
+            Alignment::Center,
+        );
+
+        LinearLayout::vertical(
+            Chain::new(
+                LinearLayout::horizontal(Chain::new(text).append(
+                    LinearLayout::vertical(Chain::new(label_co2).append(label_ppm)).arrange(),
+                ))
+                .with_alignment(vertical::Center)
+                .with_spacing(FixedMargin(4))
+                .arrange()
+                .align_to(&border, horizontal::Center, vertical::Center),
+            )
+            .append(label_level),
         )
-        .with_alignment(vertical::Center)
+        .with_alignment(horizontal::Center)
         .with_spacing(FixedMargin(4))
         .arrange()
         .align_to(&border, horizontal::Center, vertical::Center)
@@ -239,7 +264,7 @@ impl Drawable for Value<Humidity> {
     }
 }
 
-impl Theme<TriColor> for Theme2 {
+impl Theme<TriColor> for Theme3 {
     fn draw<DRAWTARGET>(
         &mut self,
         data: &Data,
