@@ -37,3 +37,5 @@ futures-util = { version = "0.3.28", default-features = false }
 esp-println = { version = "0.6.0" }
 esp-backtrace = { version = "0.8.0", features = ["panic-handler", "exception-handler", "print-uart"] }
 embedded-hal-async = { version = "1.0.0-rc.1" }
+
+epd-waveshare = {  git = "https://github.com/BrendanBall/epd-waveshare.git", rev = "5da7c141a8e77a083f4ef759798cf43b2e90a271" }

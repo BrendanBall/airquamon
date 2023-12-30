@@ -1,13 +1,19 @@
 # Airquamon
 Monitor air quality, starting with C02.
 
+Table of Contents:
+- [Display Themes](display_themes/README.md)
+
 ## Hardware
 - [Sensirion SCD41](https://sensirion.com/products/catalog/SCD41)
 - [ESP32-C3-DevKitC-02](https://docs.espressif.com/projects/esp-idf/en/latest/esp32c3/hw-reference/esp32c3/user-guide-devkitc-02.html)
+- [2.9inch E-Paper E-Ink Display Module (B)](https://www.waveshare.com/product/displays/e-paper/epaper-2/2.9inch-e-paper-module-b.htm)
 
 ## ESP32-C3-DevKitC-02
-I2C can be used on any GPIO pins.
-Currently using the following for Sensirion SCD41:
+I2C and SPI2 can be used on any GPIO pins.
+
+### Sensirion SCD41
+Connections:
 - I2C SCL (yellow) -> GPIO0
 - I2C SDA (green) -> GPIO1
 - GND (black) -> GND
@@ -25,7 +31,7 @@ https://www.waveshare.com/product/displays/e-paper/epaper-2/2.9inch-e-paper-modu
 - RST:	External reset, low active
 - BUSY:	Busy status output, low active
 
-SPI2 can be used on any GPIO pins
+Connections:
 - VCC -> 3.3 V
 - GND -> GND
 - DIN (MOSI) -> GPIO4

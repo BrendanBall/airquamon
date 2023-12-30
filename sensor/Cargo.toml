@@ -11,5 +11,6 @@ embedded-hal = "1.0.0-rc.1"
 
 [dependencies.scd4x]
 version = "0.2.1" 
-path = "../../../scd4x-rs"
+git = "https://github.com/BrendanBall/scd4x-rs.git"
+rev = "1acda0deb3296138c12bcf2532d99299e0ad0ae0"
 default-features = false

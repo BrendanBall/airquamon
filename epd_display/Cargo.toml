@@ -10,5 +10,5 @@ airquamon_domain = { path = "../airquamon_domain" }
 display_themes = { path = "../display_themes" }
 embedded-graphics = "0.8.1"
 embedded-hal = "1.0.0-rc.1"
-epd-waveshare = { path = "/home/brendan/dev/projects/epd-waveshare" }
+epd-waveshare = {  workspace = true }
 log = { version = "0.4.18" }

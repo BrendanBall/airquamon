@@ -10,12 +10,12 @@ embedded-graphics = "0.8"
 embedded-layout = "0.4.1"
 heapless = "0.7.16"
 airquamon_domain = { path = "../airquamon_domain" }
-epd-waveshare = { path = "/home/brendan/dev/projects/epd-waveshare" }
+epd-waveshare = {  workspace = true }
 u8g2-fonts = { version = "0.3.0", features = ["embedded_graphics_textstyle"] }
 
 [dev-dependencies]
 embedded-graphics-simulator = "0.5.0"
-epd-waveshare = { path = "/home/brendan/dev/projects/epd-waveshare", features = ["graphics"] }
+epd-waveshare = {  workspace = true, features = ["graphics"] }
 clap = { version = "4.4.8", features = ["derive"] }
 
 [features]
