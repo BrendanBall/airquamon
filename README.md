@@ -1,8 +1,22 @@
 # Airquamon
 Monitor air quality, starting with C02.
+This project currently uses the ESP32-C3 MCU and is implemented in Rust (no_std).
+It periodically reads the sensor data (CO2, temperature, humidity) and displays it on an e-ink display.
+See [Display Themes](display_themes/README.md) for more info on the display themes.
 
-Table of Contents:
-- [Display Themes](display_themes/README.md)
+## Building and Flashing
+To build:
+
+```sh
+cd esp32c3_nostd
+cargo build --release
+```
+
+To flash:
+```sh
+cd esp32c3_nostd
+cargo run --release
+```
 
 ## Hardware
 - [Sensirion SCD41](https://sensirion.com/products/catalog/SCD41)
